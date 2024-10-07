@@ -128,7 +128,7 @@ static int WraptObjectProxy_init(WraptObjectProxyObject *self,
 {
     PyObject *wrapped = NULL;
 
-    static char *kwlist[] = { "wrapped", NULL };
+    char *const kwlist[] = { "wrapped", NULL };
 
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:ObjectProxy",
             kwlist, &wrapped)) {
@@ -1318,17 +1318,26 @@ static PyObject *WraptObjectProxy_reversed(
 
 #if PY_MAJOR_VERSION >= 3
 static PyObject *WraptObjectProxy_round(
-        WraptObjectProxyObject *self, PyObject *args)
+        WraptObjectProxyObject *self, PyObject *args, PyObject *kwds)
 {
+    PyObject *ndigits = NULL;
+
     PyObject *module = NULL;
     PyObject *dict = NULL;
     PyObject *round = NULL;
 
     PyObject *result = NULL;
 
+    char *const kwlist[] = { "ndigits", NULL };
+
     if (!self->wrapped) {
       PyErr_SetString(PyExc_ValueError, "wrapper has not been initialized");
       return NULL;
+    }
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O:ObjectProxy",
+        kwlist, &ndigits)) {
+        return NULL;
     }
 
     module = PyImport_ImportModule("builtins");
@@ -1336,8 +1345,7 @@ static PyObject *WraptObjectProxy_round(
     if (!module)
         return NULL;
 
-    dict = PyModule_GetDict(module);
-    round = PyDict_GetItemString(dict, "round");
+    round = PyObject_GetAttrString(module, "round");
 
     if (!round) {
         Py_DECREF(module);
@@ -1347,7 +1355,7 @@ static PyObject *WraptObjectProxy_round(
     Py_INCREF(round);
     Py_DECREF(module);
 
-    result = PyObject_CallFunctionObjArgs(round, self->wrapped, NULL);
+    result = PyObject_CallFunctionObjArgs(round, self->wrapped, ndigits, NULL);
 
     Py_DECREF(round);
 
@@ -1818,7 +1826,8 @@ static PyMethodDef WraptObjectProxy_methods[] = {
     { "__format__",  (PyCFunction)WraptObjectProxy_format, METH_VARARGS, 0 },
     { "__reversed__", (PyCFunction)WraptObjectProxy_reversed, METH_NOARGS, 0 },
 #if PY_MAJOR_VERSION >= 3
-    { "__round__",  (PyCFunction)WraptObjectProxy_round, METH_NOARGS, 0 },
+    { "__round__",  (PyCFunction)WraptObjectProxy_round,
+                    METH_VARARGS | METH_KEYWORDS, 0 },
 #endif
     { "__complex__",  (PyCFunction)WraptObjectProxy_complex, METH_NOARGS, 0 },
 #if PY_MAJOR_VERSION > 3 || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION >= 7)
@@ -2292,7 +2301,7 @@ static int WraptFunctionWrapperBase_init(WraptFunctionWrapperObject *self,
 
     static PyObject *callable_str = NULL;
 
-    static char *kwlist[] = { "wrapped", "instance", "wrapper",
+    char *const kwlist[] = { "wrapped", "instance", "wrapper",
             "enabled", "binding", "parent", "owner", NULL };
 
     if (!callable_str) {
@@ -3141,7 +3150,7 @@ static int WraptFunctionWrapper_init(WraptFunctionWrapperObject *self,
 
     int result = 0;
 
-    static char *kwlist[] = { "wrapped", "wrapper", "enabled", NULL };
+    char *const kwlist[] = { "wrapped", "wrapper", "enabled", NULL };
 
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO|O:FunctionWrapper",
             kwlist, &wrapped, &wrapper, &enabled)) {
